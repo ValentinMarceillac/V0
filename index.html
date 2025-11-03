@@ -217,6 +217,24 @@
                 <span>Garanties de sécurité</span>
               </div>
             </div>
+            <div class="ai-console">
+              <h4>Assistant de recherche IA</h4>
+              <form id="aiSearchForm" class="ai-console-form" autocomplete="off">
+                <label for="aiSearchInput">Décrivez votre besoin</label>
+                <textarea
+                  id="aiSearchInput"
+                  name="query"
+                  rows="3"
+                  placeholder="Ex : SUV électrique familial, budget 500 €/mois, autonomie 400 km"
+                  required
+                ></textarea>
+                <div class="ai-console-actions">
+                  <button type="submit" class="cta-primary">Analyser avec l'IA</button>
+                  <button type="button" class="cta-secondary" id="aiSearchReset">Réinitialiser</button>
+                </div>
+              </form>
+              <div id="aiSearchResponse" class="ai-response" aria-live="polite"></div>
+            </div>
           </div>
         </div>
       </section>

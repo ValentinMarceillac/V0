@@ -1,4 +1,4 @@
-const vehicles = [
+const fallbackVehicles = [
   {
     id: 'peugeot-e208-2024',
     brand: 'Peugeot',
@@ -229,6 +229,12 @@ const vehicles = [
   },
 ];
 
+let vehicles = [];
+let dataOrigin = 'initial';
+let eventsRegistered = false;
+
+const API_BASE_URL = '';
+
 const currencyFormatter = new Intl.NumberFormat('fr-FR', {
   style: 'currency',
   currency: 'EUR',
@@ -249,17 +255,87 @@ const resultsCount = document.getElementById('resultsCount');
 const activeTags = document.getElementById('activeTags');
 const resetFiltersButton = document.getElementById('resetFilters');
 const footerYear = document.getElementById('year');
+const aiForm = document.getElementById('aiSearchForm');
+const aiInput = document.getElementById('aiSearchInput');
+const aiResetButton = document.getElementById('aiSearchReset');
+const aiResponse = document.getElementById('aiSearchResponse');
 
 const DEFAULT_PRICE = 1500;
 const DEFAULT_CO2 = 200;
+const FILTER_LABELS = {
+  keyword: 'Mot-clé',
+  brand: 'Marque',
+  model: 'Modèle',
+  energy: 'Énergie',
+  transmission: 'Boîte',
+  price: 'Budget',
+  co2: 'CO₂',
+  segment: 'Segment',
+};
+
+async function fetchJson(url, options) {
+  const response = await fetch(url, options);
+  if (!response.ok) {
+    const error = new Error(`Erreur API (${response.status})`);
+    error.status = response.status;
+    throw error;
+  }
+  return response.json();
+}
+
+function setLoadingState(message) {
+  if (resultsContainer) {
+    resultsContainer.innerHTML = `
+      <div class="empty">
+        <strong>${message}</strong>
+      </div>
+    `;
+  }
+  if (resultsCount) {
+    resultsCount.textContent = '—';
+  }
+}
+
+async function loadVehicles() {
+  setLoadingState('Chargement des véhicules sur le marché français…');
+
+  try {
+    const payload = await fetchJson(`${API_BASE_URL}/api/vehicles`);
+    vehicles = Array.isArray(payload?.data) ? payload.data : payload;
+    dataOrigin = 'api';
+  } catch (apiError) {
+    console.warn('API indisponible, fallback JSON local', apiError);
+    try {
+      const localPayload = await fetchJson('data/vehicles.json');
+      vehicles = Array.isArray(localPayload?.data) ? localPayload.data : localPayload;
+      dataOrigin = 'local-json';
+    } catch (jsonError) {
+      console.warn('Impossible de charger data/vehicles.json, utilisation des données embarquées', jsonError);
+      vehicles = [...fallbackVehicles];
+      dataOrigin = 'embedded';
+    }
+  }
+
+  initControls();
+  registerEvents();
+  updateResults();
+
+  if (dataOrigin !== 'api') {
+    disableAiAssistant(
+      "L'API IA n'est pas disponible hors serveur. Activez le serveur Node pour utiliser la recherche intelligente."
+    );
+  }
+}
 
 function initControls() {
+  if (!vehicles.length) {
+    return;
+  }
   priceInput.value = DEFAULT_PRICE;
   co2Input.value = DEFAULT_CO2;
   updateRangeLabels();
-  populateSelect(brandSelect, getUniqueValues('brand'));
-  populateSelect(energySelect, getUniqueValues('energy'));
-  updateResults();
+  populateSelect(brandSelect, getUniqueValues(vehicles, 'brand'));
+  populateSelect(energySelect, getUniqueValues(vehicles, 'energy'));
 }
 
 function updateRangeLabels() {
@@ -267,13 +343,18 @@ function updateRangeLabels() {
   co2Value.textContent = `≤ ${co2Input.value} g CO₂/km`;
 }
 
-function getUniqueValues(key) {
-  return [...new Set(vehicles.map((vehicle) => vehicle[key]))]
+function getUniqueValues(list, key) {
+  return [...new Set(list.map((vehicle) => vehicle[key]))]
     .filter(Boolean)
     .sort((a, b) => a.localeCompare(b, 'fr'));
 }
 
 function populateSelect(select, values) {
+  if (!select) {
+    return;
+  }
+  const currentValue = select.value;
+  select.innerHTML = '<option value="">Toutes</option>';
   const fragment = document.createDocumentFragment();
   values.forEach((value) => {
     const option = document.createElement('option');
@@ -282,6 +363,9 @@ function populateSelect(select, values) {
     fragment.appendChild(option);
   });
   select.appendChild(fragment);
+  if (currentValue && values.includes(currentValue)) {
+    select.value = currentValue;
+  }
 }
 
 function getFiltersState() {
@@ -296,8 +380,8 @@ function getFiltersState() {
   };
 }
 
-function filterVehicles(state) {
-  return vehicles
+function filterVehicles(list, state) {
+  return list
     .filter((vehicle) => {
       if (state.keyword) {
         const haystack = [
@@ -442,9 +526,13 @@ function renderTags(state) {
 }
 
 function updateResults() {
+  if (!vehicles.length) {
+    setLoadingState('Aucune donnée à afficher pour le moment.');
+    return;
+  }
   const state = getFiltersState();
   updateRangeLabels();
-  const filtered = filterVehicles(state);
+  const filtered = filterVehicles(vehicles, state);
   renderResults(filtered);
   renderTags(state);
 }
@@ -493,6 +581,9 @@ function handleTagClick(event) {
 }
 
 function registerEvents() {
+  if (eventsRegistered) {
+    return;
+  }
   keywordInput.addEventListener('input', debounce(updateResults, 120));
   brandSelect.addEventListener('change', updateResults);
   energySelect.addEventListener('change', updateResults);
@@ -502,6 +593,13 @@ function registerEvents() {
   co2Input.addEventListener('input', updateResults);
   resetFiltersButton.addEventListener('click', resetFilters);
   activeTags.addEventListener('click', handleTagClick);
+
+  if (aiForm && dataOrigin === 'api') {
+    aiForm.addEventListener('submit', handleAiSubmit);
+  }
+  if (aiResetButton) {
+    aiResetButton.addEventListener('click', handleAiReset);
+  }
 
   document.querySelectorAll('.hero-actions button')?.forEach((button) => {
     button.addEventListener('click', (event) => {
@@ -513,6 +611,174 @@ function registerEvents() {
       }
     });
   });
+
+  eventsRegistered = true;
+}
+
+function disableAiAssistant(message) {
+  if (!aiForm) {
+    return;
+  }
+  const submitButton = aiForm.querySelector('button[type="submit"]');
+  if (submitButton) {
+    submitButton.disabled = true;
+  }
+  if (aiInput) {
+    aiInput.disabled = true;
+  }
+  if (aiResetButton) {
+    aiResetButton.disabled = true;
+  }
+  if (aiResponse) {
+    aiResponse.innerHTML = `<p class="ai-response-error">${message}</p>`;
+  }
+}
+
+function setAiLoading(isLoading, message = '') {
+  if (!aiResponse) {
+    return;
+  }
+  if (isLoading) {
+    aiResponse.innerHTML = `<p class="ai-loading">${message || 'Analyse en cours…'}</p>`;
+  }
+}
+
+async function handleAiSubmit(event) {
+  event.preventDefault();
+  if (!aiInput) {
+    return;
+  }
+
+  const query = aiInput.value.trim();
+  if (!query) {
+    renderAiResponse({ error: 'Décrivez vos besoins pour lancer la recherche IA.' });
+    return;
+  }
+
+  setAiLoading(true);
+
+  try {
+    const payload = await fetchJson(`${API_BASE_URL}/api/ai/query`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ query }),
+    });
+
+    renderAiResponse(payload);
+    applyAiFilters(payload.filters);
+  } catch (error) {
+    console.warn('Erreur IA', error);
+    renderAiResponse({
+      error:
+        "Impossible d'accéder à l'IA de référencement. Vérifiez que le serveur Node.js est démarré (npm start).",
+    });
+  }
+}
+
+function handleAiReset() {
+  if (aiInput) {
+    aiInput.value = '';
+  }
+  if (aiResponse) {
+    aiResponse.innerHTML = '';
+  }
+}
+
+function applyAiFilters(filters = {}) {
+  if (!filters || !Object.keys(filters).length) {
+    return;
+  }
+
+  let updated = false;
+
+  if (filters.keyword !== undefined && keywordInput) {
+    keywordInput.value = filters.keyword || '';
+    updated = true;
+  }
+  if (filters.brand !== undefined && brandSelect) {
+    brandSelect.value = brandSelect.querySelector(`option[value="${filters.brand}"]`) ? filters.brand : '';
+    updated = true;
+  }
+  if (filters.energy !== undefined && energySelect) {
+    energySelect.value = energySelect.querySelector(`option[value="${filters.energy}"]`) ? filters.energy : '';
+    updated = true;
+  }
+  if (filters.transmission !== undefined && transmissionSelect) {
+    transmissionSelect.value = filters.transmission || '';
+    updated = true;
+  }
+  if (filters.price !== undefined && priceInput) {
+    priceInput.value = Math.min(filters.price, Number(priceInput.max) || filters.price);
+    updated = true;
+  }
+  if (filters.co2 !== undefined && co2Input) {
+    co2Input.value = Math.min(filters.co2, Number(co2Input.max) || filters.co2);
+    updated = true;
+  }
+
+  if (updated) {
+    updateResults();
+  }
+}
+
+function renderAiResponse(payload) {
+  if (!aiResponse) {
+    return;
+  }
+
+  if (payload?.error) {
+    aiResponse.innerHTML = `<p class="ai-response-error">${payload.error}</p>`;
+    return;
+  }
+
+  const filters = payload?.filters || {};
+  const matches = payload?.matches || [];
+  const total = payload?.meta?.total ?? matches.length;
+  const summary = payload?.summary ? `<p>${payload.summary}</p>` : '';
+
+  const filterEntries = Object.entries(filters)
+    .filter(([key, value]) => value && !['sort'].includes(key))
+    .map(([key, value]) => `<li><strong>${key}</strong> : ${value}</li>`) // key names raw? maybe convert to label.
+
+  const filterList = filterEntries.length
+    ? `<div class="ai-response-block"><p class="ai-response-subtitle">Filtres IA détectés</p><ul>${filterEntries.join(
+        ''
+      )}</ul></div>`
+    : '';
+
+  const previewItems = matches.slice(0, 3).map(
+    (vehicle) => `<li>${vehicle.brand} ${vehicle.model} • ${vehicle.energy} • ${vehicle.monthlyPrice} €/mois</li>`
+  );
+
+  const previewList = previewItems.length
+    ? `<div class="ai-response-block"><p class="ai-response-subtitle">Top recommandations</p><ul>${previewItems.join(
+        ''
+      )}</ul></div>`
+    : '';
+
+  const insights = payload?.meta?.insights
+    ? `<div class="ai-response-block ai-response-insights">
+        <p class="ai-response-subtitle">Insights express</p>
+        <ul>
+          <li>Prix moyen : ${currencyFormatter.format(payload.meta.insights.averageMonthlyPrice)}/mois</li>
+          <li>Plage tarifaire : ${currencyFormatter.format(payload.meta.insights.minMonthlyPrice)} à ${currencyFormatter.format(
+        payload.meta.insights.maxMonthlyPrice
+      )}/mois</li>
+          <li>Émissions min : ${payload.meta.insights.minCo2} g/km</li>
+          ${payload.meta.insights.maxAutonomy ? `<li>Autonomie max : ${payload.meta.insights.maxAutonomy} km</li>` : ''}
+        </ul>
+      </div>`
+    : '';
+
+  aiResponse.innerHTML = `
+    ${summary}
+    <p class="ai-response-total">${total} résultat${total > 1 ? 's' : ''} identifiés par l'IA.</p>
+    ${filterList}
+    ${previewList}
+    ${insights}
+  `;
 }
 
 function debounce(fn, delay = 150) {
@@ -525,8 +791,7 @@ function debounce(fn, delay = 150) {
 
 document.addEventListener('DOMContentLoaded', () => {
   footerYear.textContent = new Date().getFullYear();
-  initControls();
-  registerEvents();
+  loadVehicles();
 });
 
 // Accessibility enhancements for keyboard users
