@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AutoScope | Référence du marché automobile français</title>
+    <meta
+      name="description"
+      content="Comparez et trouvez le véhicule idéal sur le marché automobile français grâce à une recherche dynamique propulsée par l'IA."
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="container">
+        <div class="brand">AutoScope</div>
+        <nav class="nav">
+          <a href="#recherche">Recherche</a>
+          <a href="#tendances">Tendances</a>
+          <a href="#ia">IA & Données</a>
+          <a href="#contact">Contact</a>
+        </nav>
+        <button class="cta-primary">Demander une démo</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero" id="accueil">
+        <div class="container">
+          <div class="hero-content">
+            <h1>
+              Toute l'offre automobile française, analysée et référencée par notre IA
+            </h1>
+            <p>
+              Explorez les véhicules neufs et d'occasion disponibles sur le marché
+              français. Notre moteur intelligent consolide les annonces publiques,
+              les catalogues constructeurs et les stocks distributeurs pour vous
+              délivrer une vision claire et actualisée.
+            </p>
+            <div class="hero-actions">
+              <button class="cta-primary">Démarrer la recherche</button>
+              <button class="cta-secondary">Explorer les tendances</button>
+            </div>
+            <div class="hero-highlights">
+              <div>
+                <strong>+120 000</strong>
+                <span>Véhicules trackés quotidiennement</span>
+              </div>
+              <div>
+                <strong>5 min</strong>
+                <span>Pour obtenir une analyse personnalisée</span>
+              </div>
+              <div>
+                <strong>98%</strong>
+                <span>Couverture du marché français</span>
+              </div>
+            </div>
+          </div>
+          <div class="hero-visual">
+            <div class="hero-card">
+              <div class="hero-card-header">
+                <span class="dot dot-red"></span>
+                <span class="dot dot-yellow"></span>
+                <span class="dot dot-green"></span>
+              </div>
+              <div class="hero-card-body">
+                <h2>Recherche intelligente</h2>
+                <p>Choisissez vos critères et laissez l'IA faire le tri.</p>
+                <ul>
+                  <li>Analyse de prix en temps réel</li>
+                  <li>Comparaison d'empreinte carbone</li>
+                  <li>Suivi de disponibilité concessionnaire</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="search" id="recherche">
+        <div class="container">
+          <div class="search-header">
+            <h2>Trouver votre véhicule</h2>
+            <p>
+              Filtrez en direct par marque, énergie, prix ou segment. Les résultats
+              se mettent à jour instantanément.
+            </p>
+          </div>
+          <form class="filters" id="filters" autocomplete="off">
+            <div class="filter-group">
+              <label for="keyword">Modèle ou mot-clé</label>
+              <input type="text" id="keyword" name="keyword" placeholder="Ex : e-208, Captur, hybride" />
+            </div>
+            <div class="filter-group">
+              <label for="brand">Marque</label>
+              <select id="brand" name="brand">
+                <option value="">Toutes</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label for="energy">Énergie</label>
+              <select id="energy" name="energy">
+                <option value="">Toutes</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label for="transmission">Boîte</label>
+              <select id="transmission" name="transmission">
+                <option value="">Toutes</option>
+                <option value="Manuelle">Manuelle</option>
+                <option value="Automatique">Automatique</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label for="price">Budget max (€/mois)</label>
+              <input type="range" id="price" name="price" min="200" max="1500" step="50" />
+              <span id="priceValue" class="range-value"></span>
+            </div>
+            <div class="filter-group">
+              <label for="co2">Émissions max (g CO₂/km)</label>
+              <input type="range" id="co2" name="co2" min="0" max="200" step="5" />
+              <span id="co2Value" class="range-value"></span>
+            </div>
+            <div class="filter-group">
+              <label for="sort">Trier par</label>
+              <select id="sort" name="sort">
+                <option value="score">Recommandé par l'IA</option>
+                <option value="price-asc">Prix croissant</option>
+                <option value="price-desc">Prix décroissant</option>
+                <option value="year-desc">Année récente</option>
+                <option value="co2-asc">Émissions les plus basses</option>
+              </select>
+            </div>
+          </form>
+
+          <div class="results-meta">
+            <div>
+              <strong id="resultsCount">0 véhicule</strong>
+              <span>correspond à vos critères</span>
+            </div>
+            <div class="tags" id="activeTags"></div>
+            <button class="link" id="resetFilters">Réinitialiser</button>
+          </div>
+
+          <div class="results" id="results"></div>
+        </div>
+      </section>
+
+      <section class="insights" id="tendances">
+        <div class="container">
+          <header>
+            <h2>Tendances marché 2025</h2>
+            <p>
+              L'IA d'AutoScope agrège les signaux des marketplaces, flottes entreprises et réseaux de distribution pour vous offrir une vision à jour.
+            </p>
+          </header>
+          <div class="insights-grid">
+            <article class="insight-card">
+              <h3>Montée en puissance de l'électrique</h3>
+              <p>
+                +32% d'annonces électrifiées sur les 6 derniers mois, porté par les primes à la conversion et les nouveaux modèles urbains.
+              </p>
+            </article>
+            <article class="insight-card">
+              <h3>Essence micro-hybride en tête</h3>
+              <p>
+                Les motorisations mild hybrid dominent les segments C et D grâce à leur équilibre coût/usage et aux restrictions Crit'Air.
+              </p>
+            </article>
+            <article class="insight-card">
+              <h3>Stock disponible vs commandes</h3>
+              <p>
+                Les délais moyens repassent sous 45 jours en concession grâce au rééquilibrage post-crise des semi-conducteurs.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="ai" id="ia">
+        <div class="container ai-layout">
+          <div class="ai-content">
+            <h2>Comment notre IA référence le marché</h2>
+            <p>
+              Les algorithmes d'AutoScope scrutent en continu les plateformes de ventes, catalogues constructeurs et données publiques pour centraliser les informations clés.
+            </p>
+            <ul>
+              <li>Normalisation des fiches techniques et des finitions</li>
+              <li>Détection des doublons et consolidation des prix</li>
+              <li>Veille réglementaire (bonus/malus, Crit'Air, ZFE)</li>
+              <li>Alertes sur les variations de stock ou de tarifs</li>
+            </ul>
+            <button class="cta-primary">Accéder à l'API</button>
+          </div>
+          <div class="ai-panel">
+            <h3>Connectez vos sources</h3>
+            <p>
+              Importez facilement vos inventaires ou branchez nos connecteurs vers les principales marketplaces auto.
+            </p>
+            <div class="ai-stats">
+              <div>
+                <strong>37</strong>
+                <span>Sources monitorées</span>
+              </div>
+              <div>
+                <strong>4 h</strong>
+                <span>Latence max des mises à jour</span>
+              </div>
+              <div>
+                <strong>ISO 27001</strong>
+                <span>Garanties de sécurité</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="newsletter" id="contact">
+        <div class="container newsletter-layout">
+          <div>
+            <h2>Restez informé</h2>
+            <p>
+              Recevez chaque mois notre briefing marché : indices de prix, lancement de modèles, focus réglementaire.
+            </p>
+          </div>
+          <form class="newsletter-form">
+            <input type="email" placeholder="Votre email professionnel" required />
+            <button type="submit" class="cta-primary">S'abonner</button>
+          </form>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="container footer-layout">
+        <div>
+          <div class="brand">AutoScope</div>
+          <p>La référence data pour le marché automobile français.</p>
+        </div>
+        <div>
+          <h4>Navigation</h4>
+          <ul>
+            <li><a href="#accueil">Accueil</a></li>
+            <li><a href="#recherche">Recherche</a></li>
+            <li><a href="#tendances">Tendances</a></li>
+            <li><a href="#ia">IA</a></li>
+            <li><a href="#contact">Contact</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Ressources</h4>
+          <ul>
+            <li><a href="#">Documentation API</a></li>
+            <li><a href="#">Tarifs</a></li>
+            <li><a href="#">Support</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Suivez-nous</h4>
+          <ul>
+            <li><a href="#">LinkedIn</a></li>
+            <li><a href="#">YouTube</a></li>
+            <li><a href="#">Newsletter</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <small>© <span id="year"></span> AutoScope. Tous droits réservés.</small>
+      </div>
+    </footer>
+
+    <script src="scripts.js" type="module"></script>
+  </body>
+</html>
