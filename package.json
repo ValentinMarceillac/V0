@@ -1,0 +1,16 @@
+{
+  "name": "autoscope",
+  "version": "1.0.0",
+  "description": "Site vitrine avec recherche dynamique pour le marché automobile français et API IA",
+  "type": "module",
+  "scripts": {
+    "start": "node api/server.js",
+    "dev": "nodemon api/server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}
